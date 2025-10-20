@@ -1,0 +1,22 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs and temp
+*.log
+*.tmp
+~$*
+
+# PowerShell metadata (optional modules)
+*.psd1
+*.psm1
+
+# Node/other common folders (not used here but harmless)
+node_modules/
+dist/
+build/
