@@ -1,0 +1,53 @@
+name: PowerShell CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  analyze:
+    name: Script analysis (PSScriptAnalyzer)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+
+      - name: Run PSScriptAnalyzer (errors only)
+        shell: pwsh
+        run: |
+          Invoke-ScriptAnalyzer -Path . -Recurse -EnableExit -Severity Error
+
+  syntax-check:
+    name: Basic syntax check (-DryRun)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PowerShell 7 check
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ./FontSharpener.ps1 -DryRun -Verbose
+
+      - name: Windows PowerShell 5.1 check
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./FontSharpener.ps1 -DryRun -Verbose
+
+  publish-readme:
+    name: Publish README artifact
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Upload README
+        uses: actions/upload-artifact@v4
+        with:
+          name: README
+          path: README.md
