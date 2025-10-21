@@ -1,0 +1,17 @@
+# General
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+*.bak
+
+# PowerShell
+*.ps1.save
+*.ps1~
+*.ps1.tmp
+
+# Editor files
+.vscode/
+.idea/
+*.swp
