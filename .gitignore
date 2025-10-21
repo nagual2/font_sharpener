@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
+
+# Editors/IDEs
+.vscode/
+.idea/
+.vs/
+
+# Misc
+.env
+.env.*
+*.bak
+*.old
+
+# Build artifacts (generic)
+dist/
+build/
+out/
+coverage/
+node_modules/
