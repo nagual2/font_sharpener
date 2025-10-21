@@ -1,69 +1,58 @@
 # font_sharpener
+
 DPI Scaling Fix for Clear Fonts in Windows
-Улучшает чёткость шрифтов в Windows через настройку реестра.
-По мотивам https://actika.livejournal.com/5313.html
 
+Утилита на PowerShell для улучшения чёткости шрифтов в Windows через настройку реестра. Скрипт делает резервную копию текущих значений и применяет оптимальные параметры масштабирования.
 
-Склонируйте репозиторий или скачайте файл Set-DpiScaling.ps1:
-sh
-git clone https://github.com/ваш-репозиторий.git
+Основано на идеях: https://actika.livejournal.com/5313.html
 
+## Быстрый старт
 
-Перейдите в папку с скриптом:
+1) Откройте PowerShell от имени администратора (Win + X → «Терминал Windows (администратор)»)
+2) При необходимости разрешите выполнение локальных скриптов:
 
-sh
-cd registry-dpi-scaling-tool
-
-
-Запуск скрипта
-
-Откройте PowerShell от имени администратора
-
-(Нажмите Win + X → "Терминал Windows (администратор)")
-
-
-Разрешите выполнение скриптов (если нужно):
-
-powershell
+```powershell
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-Запустите скрипт:
+```
 
-powershell
+3) Скачайте файл `Set-DpiScaling.ps1` (или клонируйте репозиторий) и запустите его из папки со скриптом:
+
+```powershell
 .\Set-DpiScaling.ps1
+```
 
+После выполнения скрипт сообщит о статусе. Для применения может потребоваться выход из системы или перезагрузка.
 
-Что делает скрипт?
-Создает резервные копии текущих значений реестра (добавляя _ к именам ключей):
+## Что делает скрипт
 
-DpiScalingVer → DpiScalingVer_
+- Создаёт резервные копии значений (с суффиксом `_`):
+  - `DpiScalingVer_`, `Win8DpiScaling_`, `LogPixels_`, `FontSmoothing_`
+- Устанавливает новые значения:
 
-Win8DpiScaling → Win8DpiScaling_
-
-LogPixels → LogPixels_
-
-FontSmoothing → FontSmoothing_
-
-Устанавливает новые значения для улучшения масштабирования:
-
-reg
+```reg
 DpiScalingVer    = 0x00001000
-
 Win8DpiScaling   = 0x00000001
+LogPixels        = 0x00000060  ; 96 DPI
+FontSmoothing    = 0x00000001  ; включено
+```
 
-LogPixels        = 0x00000060 (96 DPI)
+## Важно
 
-FontSmoothing    = 0x00000001 (Включено)
+- Требуются права администратора
+- Рекомендуется создать точку восстановления системы
+- Применение может потребовать перезагрузки
 
-Проверяет, что изменения применились.
+## Восстановление
 
+Скрипт создаёт резервные значения с суффиксом `_`. Для ручного отката можно вернуть исходные значения:
 
-Важно!
+```powershell
+$regPath = "HKCU:\Control Panel\Desktop"
+$keys = 'DpiScalingVer','Win8DpiScaling','LogPixels','FontSmoothing'
+foreach ($k in $keys) {
+  $backup = (Get-ItemProperty -Path $regPath -Name ($k + '_') -ErrorAction SilentlyContinue).($k + '_')
+  if ($null -ne $backup) { Set-ItemProperty -Path $regPath -Name $k -Value $backup -Type DWord -Force }
+}
+```
 
-Требуются права администратора
-
-После применения изменений может потребоваться перезагрузка
-
-Рекомендуется создать точку восстановления системы перед запуском
-
-
-
+Используйте на свой страх и риск. Автор не несёт ответственности за возможные последствия.

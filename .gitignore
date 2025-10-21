@@ -1,0 +1,20 @@
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*~
+
+# Logs
+*.log
+
+# PowerShell
+*.pshistory
