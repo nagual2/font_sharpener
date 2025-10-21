@@ -1,4 +1,47 @@
-﻿<#
+<#
+.SYNOPSIS
+    Windows DPI scaling and font clarity adjustment for the current user
+.DESCRIPTION
+    Backs up existing values under HKCU:\Control Panel\Desktop by creating
+    underscore-suffixed copies (e.g., DpiScalingVer_), then sets fixed DWORDs
+    to improve font clarity on some systems.
+
+    Keys and values written (DWORD):
+      - DpiScalingVer  = 0x00001000
+      - Win8DpiScaling = 0x00000001
+      - LogPixels      = 0x00000060 (96 DPI)
+      - FontSmoothing  = 0x00000001 (enabled)
+
+.PARAMETER Restore
+    Not implemented in this script. See README for a manual restore snippet
+    that copies the underscore-suffixed backups back to the original names.
+
+.PARAMETER RestoreFrom
+    Not implemented. See README for manual restore guidance.
+
+.PARAMETER BackupPath
+    Not applicable. Backups are stored in-place in HKCU:\Control Panel\Desktop
+    by creating values with a trailing underscore.
+
+.EXAMPLE
+    PS> .\Set-DpiScaling.ps1
+    Backs up current values (e.g., DpiScalingVer_) and writes the fixed values.
+
+.EXAMPLE
+    Manual restore in an elevated PowerShell:
+        $regPath = 'HKCU:\Control Panel\Desktop'
+        $keys = 'DpiScalingVer','Win8DpiScaling','LogPixels','FontSmoothing'
+        foreach ($k in $keys) {
+          $b = (Get-ItemProperty -Path $regPath -Name ($k + '_') -ErrorAction SilentlyContinue).($k + '_')
+          if ($null -ne $b) { Set-ItemProperty -Path $regPath -Name $k -Type DWORD -Value $b }
+        }
+
+.NOTES
+    Run in elevated PowerShell. Changes apply to the current user (HKCU) only.
+    Sign out and back in, or reboot, to apply changes.
+#>
+
+<#
 .SYNOPSIS
     Скрипт для настройки параметров масштабирования в реестре
 .DESCRIPTION
