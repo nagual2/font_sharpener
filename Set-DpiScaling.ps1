@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Скрипт для настройки параметров масштабирования в реестре
 .DESCRIPTION
@@ -39,7 +39,7 @@ function Backup-RegistryKeys {
             $originalValueData = $originalValue.$key
             
             # Создаем резервную копию
-            Set-ItemProperty -Path $regPath -Name $backupKeyName -Value $originalValueData -Type DWORD -Force
+            New-ItemProperty -Path $regPath -Name $backupKeyName -Value $originalValueData -PropertyType DWord -Force | Out-Null
             Write-Host "Резервная копия: $key -> $backupKeyName (Значение: $originalValueData)" -ForegroundColor Green
         } else {
             Write-Host "Ключ $key не найден, резервная копия не создана" -ForegroundColor Yellow
@@ -53,7 +53,7 @@ function Set-NewRegistryValues {
     
     foreach ($key in $newValues.Keys) {
         $value = $newValues[$key]
-        Set-ItemProperty -Path $regPath -Name $key -Value $value -Type DWORD -Force
+        New-ItemProperty -Path $regPath -Name $key -Value $value -PropertyType DWord -Force | Out-Null
         Write-Host "Установлено: $key = $value" -ForegroundColor Green
     }
 }

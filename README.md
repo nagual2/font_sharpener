@@ -1,69 +1,54 @@
 # font_sharpener
+
 DPI Scaling Fix for Clear Fonts in Windows
-Улучшает чёткость шрифтов в Windows через настройку реестра.
-По мотивам https://actika.livejournal.com/5313.html
 
+Улучшает чёткость шрифтов в Windows через настройку реестра. По мотивам: https://actika.livejournal.com/5313.html
 
-Склонируйте репозиторий или скачайте файл Set-DpiScaling.ps1:
-sh
-git clone https://github.com/ваш-репозиторий.git
+## Установка
 
+Склонируйте репозиторий (или просто скачайте файл Set-DpiScaling.ps1):
 
-Перейдите в папку с скриптом:
+```bash
+git clone <repo-url>
+cd font_sharpener
+```
 
-sh
-cd registry-dpi-scaling-tool
+## Запуск скрипта
 
+1) Откройте PowerShell от имени администратора (Win + X → «Терминал Windows (администратор)»)
+2) При необходимости разрешите выполнение скриптов:
 
-Запуск скрипта
-
-Откройте PowerShell от имени администратора
-
-(Нажмите Win + X → "Терминал Windows (администратор)")
-
-
-Разрешите выполнение скриптов (если нужно):
-
-powershell
+```powershell
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-Запустите скрипт:
+```
 
-powershell
+3) Запустите скрипт:
+
+```powershell
 .\Set-DpiScaling.ps1
+```
 
+## Что делает скрипт?
 
-Что делает скрипт?
-Создает резервные копии текущих значений реестра (добавляя _ к именам ключей):
+1. Создаёт резервные копии текущих значений реестра (добавляя `_` к именам ключей):
+   - `DpiScalingVer` → `DpiScalingVer_`
+   - `Win8DpiScaling` → `Win8DpiScaling_`
+   - `LogPixels` → `LogPixels_`
+   - `FontSmoothing` → `FontSmoothing_`
 
-DpiScalingVer → DpiScalingVer_
+2. Устанавливает новые значения для улучшения масштабирования и чёткости шрифтов:
 
-Win8DpiScaling → Win8DpiScaling_
+```reg
+DpiScalingVer  = 0x00001000
+Win8DpiScaling = 0x00000001
+LogPixels      = 0x00000060  ; 96 DPI
+FontSmoothing  = 0x00000001  ; Включено
+```
 
-LogPixels → LogPixels_
+3. Проверяет, что изменения применились.
 
-FontSmoothing → FontSmoothing_
+## Важно
 
-Устанавливает новые значения для улучшения масштабирования:
-
-reg
-DpiScalingVer    = 0x00001000
-
-Win8DpiScaling   = 0x00000001
-
-LogPixels        = 0x00000060 (96 DPI)
-
-FontSmoothing    = 0x00000001 (Включено)
-
-Проверяет, что изменения применились.
-
-
-Важно!
-
-Требуются права администратора
-
-После применения изменений может потребоваться перезагрузка
-
-Рекомендуется создать точку восстановления системы перед запуском
-
-
-
+- Требуются права администратора.
+- После применения изменений может потребоваться перезагрузка или выход из системы.
+- Рекомендуется создать точку восстановления системы перед запуском.
