@@ -1,0 +1,55 @@
+repos:
+  # Gitleaks: Secret detection in git history and staged files
+  - repo: https://github.com/gitleaks/pre-commit-hook
+    rev: v3.4.0
+    hooks:
+      - id: gitleaks
+        name: Detect secrets with gitleaks
+        description: Detect secrets with gitleaks
+        entry: gitleaks protect --verbose --redact --staged
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Trailing whitespace removal
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        description: Trim trailing whitespace
+        entry: trailing-whitespace-fixer
+        language: python
+        types: [text]
+
+      - id: end-of-file-fixer
+        name: Fix end of file
+        description: Fix files that only contain a newline
+        entry: end-of-file-fixer
+        language: python
+        types: [text]
+
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        description: Check for merge conflicts
+        entry: check-merge-conflict
+        language: python
+
+      - id: mixed-line-ending
+        name: Check mixed line endings
+        description: Check for mixed line endings
+        entry: mixed-line-ending
+        language: python
+        types: [text]
+
+  # Credentials detection in strings
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        description: Detects secrets using entropy and rules-based scanning
+        entry: detect-secrets scan
+        language: python
+        types: [text]
+        args: ['--baseline', '.secrets.baseline']
