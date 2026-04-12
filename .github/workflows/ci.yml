@@ -1,0 +1,95 @@
+name: PowerShell CI
+
+on:
+  push:
+    branches: [main, feat/*, fix/*]
+    paths:
+      - '**.ps1'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.ps1'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  analyze:
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+
+      - name: Run PSScriptAnalyzer (Error severity)
+        shell: pwsh
+        run: |
+          Invoke-ScriptAnalyzer -Path . -Recurse -EnableExit -Severity Error
+
+      - name: Run PSScriptAnalyzer (Warning check - non-blocking)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $warnings = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning
+          if ($warnings) {
+            Write-Host "Warnings found:" -ForegroundColor Yellow
+            $warnings | Format-Table RuleName, Severity, ScriptName, Line -AutoSize
+          }
+
+  syntax-check:
+    name: Syntax & Dry-Run Check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PowerShell 7 (pwsh)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "
+            Write-Host 'Testing FontSharpener.ps1 syntax...' -ForegroundColor Cyan
+            .\FontSharpener.ps1 -DryRun -Verbose -ScalingPercent 100
+          "
+
+      - name: Check Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            Write-Host 'Testing FontSharpener.ps1 on PowerShell 5.1...' -ForegroundColor Cyan
+            .\FontSharpener.ps1 -DryRun -Verbose -ScalingPercent 125
+          "
+
+      - name: Test ListBackups
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "
+            .\FontSharpener.ps1 -ListBackups
+          "
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check markdown files
+        run: |
+          echo "Checking documentation structure..."
+          test -f README.md || (echo "Missing README.md" && exit 1)
+          test -f README.ru.md || echo "Warning: README.ru.md missing"
+          echo "Documentation OK"
+
+      - name: Upload README artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: |
+            README.md
+            README.ru.md
+            docs/
