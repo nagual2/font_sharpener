@@ -1,168 +1,180 @@
-# Font Sharpener — Windows DPI scaling and font clarity fix (EN)
+# FontSharpener
 
-A minimal PowerShell script that improves font clarity on some Windows systems by writing a few DPI-related registry values for the current user. It first backs up your current values, then applies a known-good set of defaults.
+[![PowerShell CI](https://github.com/nagual2/font_sharpener/actions/workflows/ci.yml/badge.svg)](https://github.com/nagual2/font_sharpener/actions/workflows/ci.yml)
+[![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://docs.microsoft.com/powershell/scripting/install/installing-powershell)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Based on the approach described here: https://actika.livejournal.com/5313.html
+> A PowerShell tool for configuring Windows DPI scaling and font smoothing settings to improve text clarity.
 
-Overview
+## Overview
 
-- Scope: Current user only (HKCU). No services, no installers.
-- Flow: Backup current values → apply fixed values → verify → you sign out or reboot.
-- Admin rights: Run PowerShell as Administrator.
+FontSharpener modifies Windows registry settings related to DPI scaling and font smoothing. It is designed for users who experience blurry or poorly scaled fonts on high-DPI displays or after certain Windows updates.
 
-Registry keys and exact values changed
+**Scope:** Current user only (`HKCU` registry hive). No system-wide changes, no services installed.
 
-Path: HKCU\Control Panel\Desktop (DWORD values)
+**Safety:** Dual backup strategy (JSON files + registry underscore copies), dry-run mode, automatic elevation, idempotent operations.
 
-- DpiScalingVer = 0x00001000
-- Win8DpiScaling = 0x00000001
-- LogPixels = 0x00000060  (96 DPI)
-- FontSmoothing = 0x00000001  (enabled)
+## Quick Start
 
-How backup and restore work
+```powershell
+# Preview changes (no modifications)
+.\FontSharpener.ps1 -DryRun
 
-- Backup method (in-place): Before any change, the script reads each value and stores a backup copy with an underscore suffix in the same registry location:
-  - DpiScalingVer → DpiScalingVer_
-  - Win8DpiScaling → Win8DpiScaling_
-  - LogPixels → LogPixels_
-  - FontSmoothing → FontSmoothing_
-- Default backup location: No external files are created. Backups live alongside the originals in HKCU\Control Panel\Desktop as “valueName_”.
-- Restore options (manual): This script does not implement a restore switch. To revert, either use Registry Editor (regedit) to copy the “_” values back to their originals or run the PowerShell snippet below in an elevated window:
+# Apply 100% scaling (default)
+.\FontSharpener.ps1
 
+# Apply 125% scaling without prompts
+.\FontSharpener.ps1 -ScalingPercent 125 -Force
+
+# List all available backups
+.\FontSharpener.ps1 -ListBackups
+
+# Restore from a specific backup
+.\FontSharpener.ps1 -Restore "C:\Users\YourName\Documents\FontSharpener-Backups\FontSharpener-backup-20250115-143022.json" -Force
 ```
+
+## Requirements
+
+- Windows 10 or Windows 11
+- PowerShell 5.1 or PowerShell 7+
+- Administrator rights (script will auto-elevate if needed)
+
+## Installation
+
+1. Download `FontSharpener.ps1` from the [latest release](https://github.com/nagual2/font_sharpener/releases)
+2. Save to a directory of your choice
+3. Run PowerShell as Administrator (or let the script auto-elevate)
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `-ScalingPercent` | int | 100 | Target DPI scaling: 100, 125, 150, or 175 |
+| `-DryRun` | switch | - | Preview changes without applying |
+| `-BackupPath` | string | Documents\FontSharpener-Backups\ | Custom backup directory or file |
+| `-Restore` | string | - | Path to JSON backup file to restore from |
+| `-Force` | switch | - | Skip confirmation prompts |
+| `-ListBackups` | switch | - | Show all available backups and exit |
+| `-Verbose` | switch | - | Show detailed operation output |
+| `-WhatIf` | switch | - | Standard PowerShell what-if mode |
+
+## Registry Keys Modified
+
+All changes are made under `HKCU:\Control Panel\Desktop`:
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `DpiScalingVer` | `0x00001000` (4096) | DPI scaling state flag |
+| `Win8DpiScaling` | `0x00000001` (1) | Enable Windows 8-style DPI scaling |
+| `LogPixels` | `96/120/144/168` | DPI value based on `-ScalingPercent` |
+| `FontSmoothing` | `0x00000001` (1) | Enable ClearType font smoothing |
+
+## Backup and Restore
+
+### Automatic Backups
+
+Before any change, the script creates:
+
+1. **JSON backup file** (default location: `%USERPROFILE%\Documents\FontSharpener-Backups\`)
+   ```json
+   {
+     "SchemaVersion": 2,
+     "Created": "2025-01-15T14:30:22",
+     "ToolVersion": "2.0.0",
+     "ScalingPercent": 100,
+     "Values": {
+       "DpiScalingVer": 4096,
+       "Win8DpiScaling": 1,
+       "LogPixels": 96,
+       "FontSmoothing": 1
+     }
+   }
+   ```
+
+2. **Registry underscore copies** in the same registry location:
+   - `DpiScalingVer` → `DpiScalingVer_`
+   - `Win8DpiScaling` → `Win8DpiScaling_`
+   - `LogPixels` → `LogPixels_`
+   - `FontSmoothing` → `FontSmoothing_`
+
+### Manual Restore
+
+```powershell
+# List available backups
+.\FontSharpener.ps1 -ListBackups
+
+# Restore from specific backup
+.\FontSharpener.ps1 -Restore "$env:USERPROFILE\Documents\FontSharpener-Backups\FontSharpener-backup-20250115-143022.json"
+```
+
+Or manually via PowerShell:
+
+```powershell
 $regPath = 'HKCU:\Control Panel\Desktop'
-$keys = 'DpiScalingVer','Win8DpiScaling','LogPixels','FontSmoothing'
+$keys = 'DpiScalingVer', 'Win8DpiScaling', 'LogPixels', 'FontSmoothing'
 foreach ($k in $keys) {
-  $bkName = "${k}_"
-  $bkVal = (Get-ItemProperty -Path $regPath -Name $bkName -ErrorAction SilentlyContinue).$bkName
-  if ($null -ne $bkVal) {
-    Set-ItemProperty -Path $regPath -Name $k -Type DWORD -Value $bkVal
-  }
+    $bk = Get-ItemProperty -Path $regPath -Name "${k}_" -ErrorAction SilentlyContinue
+    if ($bk) {
+        Set-ItemProperty -Path $regPath -Name $k -Value $bk."${k}_"
+    }
 }
 ```
 
-Usage
+## Language Versions
 
-1) Open PowerShell as Administrator (Win + X → “Windows Terminal (Admin)”).
-2) If needed, allow local scripts:
+This documentation is available in multiple languages:
 
-```
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-```
+- [English](README.md) (this file)
+- [Русский](README.ru.md)
 
-3) Run the script from the repository folder:
+## Troubleshooting
 
-```
-.\Set-DpiScaling.ps1
-```
+### "Running scripts is disabled on this system"
 
-Requirements and notes
-
-- Admin privileges are required.
-- Changes apply to the current user (HKCU) only.
-- Sign out and back in (recommended) or reboot for the changes to fully apply.
-- Consider creating a system restore point if you want an additional safety net.
-
-Troubleshooting
-
-- “running scripts is disabled on this system”: set execution policy as shown above.
-- “access is denied” or no changes are saved: ensure you launched PowerShell as Administrator.
-- Fonts look worse: use the manual restore snippet above to revert the values.
-- Keys not present: the script will create the values as needed; the restore step will skip any backups that don’t exist.
-
-FAQ
-
-- What does each value do?
-  - DpiScalingVer: internal flag for DPI scaling state.
-  - Win8DpiScaling: enables Windows 8-style DPI scaling behavior (1 = on).
-  - LogPixels: DPI value (0x60 = 96 decimal).
-  - FontSmoothing: enables font smoothing/ClearType (1 = on).
-- Does this affect other users? No, only the current user.
-- Can I set a different DPI? Not with this script. It always applies the fixed values above.
-- Do I need to reboot? A sign-out is usually enough; sometimes a reboot helps.
-- Where are backups stored? In the same registry path as underscore-suffixed values. No external backup files are created.
-
-
-# Font Sharpener — исправление масштабирования DPI и чёткости шрифтов (RU)
-
-Минимальный PowerShell-скрипт, который улучшает чёткость шрифтов на некоторых системах Windows. Он сохраняет резервную копию текущих значений, затем применяет проверенный набор параметров масштабирования для текущего пользователя.
-
-Основано на подходе из: https://actika.livejournal.com/5313.html
-
-Обзор
-
-- Область действия: только текущий пользователь (HKCU). Без служб и установщиков.
-- Последовательность: Резервное копирование текущих значений → примем фиксированные значения → проверка → выход из системы или перезагрузка.
-- Права: запускать PowerShell от имени администратора.
-
-Изменяемые ключи реестра и точные значения
-
-Раздел: HKCU\Control Panel\Desktop (DWORD)
-
-- DpiScalingVer = 0x00001000
-- Win8DpiScaling = 0x00000001
-- LogPixels = 0x00000060  (96 DPI)
-- FontSmoothing = 0x00000001  (включено)
-
-Как работает резервное копирование и восстановление
-
-- Метод резервного копирования (в том же разделе): Перед изменениями скрипт сохраняет исходные значения с суффиксом подчёркивания в том же разделе реестра:
-  - DpiScalingVer → DpiScalingVer_
-  - Win8DpiScaling → Win8DpiScaling_
-  - LogPixels → LogPixels_
-  - FontSmoothing → FontSmoothing_
-- Путь резервной копии по умолчанию: внешние файлы не создаются. Копии хранятся рядом с исходными значениями в HKCU\Control Panel\Desktop под именами с «_» на конце.
-- Восстановление (вручную): В этом скрипте нет отдельного переключателя восстановления. Чтобы вернуть всё как было, используйте Редактор реестра (regedit) и перепишите значения из «_» обратно, либо выполните фрагмент PowerShell ниже в повышенной консоли:
-
-```
-$regPath = 'HKCU:\Control Panel\Desktop'
-$keys = 'DpiScalingVer','Win8DpiScaling','LogPixels','FontSmoothing'
-foreach ($k in $keys) {
-  $bkName = "${k}_"
-  $bkVal = (Get-ItemProperty -Path $regPath -Name $bkName -ErrorAction SilentlyContinue).$bkName
-  if ($null -ne $bkVal) {
-    Set-ItemProperty -Path $regPath -Name $k -Type DWORD -Value $bkVal
-  }
-}
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 ```
 
-Использование
+### "Access is denied" or changes don't apply
 
-1) Откройте PowerShell от имени администратора (Win + X → «Windows Terminal (администратор)»).
-2) При необходимости разрешите запуск локальных скриптов:
+Ensure PowerShell is running as Administrator. The script will attempt auto-elevation, but manual elevation may be required in some environments.
 
-```
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-```
+### Fonts look worse after applying
 
-3) Запустите скрипт из папки репозитория:
+Restore from backup:
 
-```
-.\Set-DpiScaling.ps1
+```powershell
+.\FontSharpener.ps1 -ListBackups
+.\FontSharpener.ps1 -Restore "<path-to-backup>" -Force
 ```
 
-Требования и примечания
+Or sign out and back in — some changes require session restart.
 
-- Нужны права администратора.
-- Изменения применяются только к текущему пользователю (HKCU).
-- Для полного применения рекомендуются выход из системы и вход снова; иногда нужна перезагрузка.
-- Для надёжности можно создать точку восстановления системы.
+## Contributing
 
-Устранение неполадок
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-- «запуск скриптов запрещён»: установите политику выполнения, как показано выше.
-- «access is denied» или изменения не сохраняются: убедитесь, что PowerShell запущен от имени администратора.
-- Шрифты стали хуже: воспользуйтесь фрагментом восстановления выше.
-- Ключей нет: скрипт создаст нужные значения; при восстановлении будут пропущены отсутствующие резервные копии.
+## Security
 
-FAQ
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and security policy.
 
-- Что делает каждый параметр?
-  - DpiScalingVer: внутренний флаг состояния масштабирования DPI.
-  - Win8DpiScaling: включает стиль масштабирования Windows 8 (1 = вкл.).
-  - LogPixels: значение DPI (0x60 = 96 десятичное).
-  - FontSmoothing: сглаживание шрифтов/ClearType (1 = вкл.).
-- Влияет ли на других пользователей? Нет, только на текущего.
-- Можно ли задать другой DPI? В этом скрипте — нет. Он всегда применяет фиксированные значения выше.
-- Нужна ли перезагрузка? Обычно достаточно выхода из системы; иногда помогает перезагрузка.
-- Где хранятся резервные копии? В том же разделе реестра, значения с суффиксом подчёркивания. Внешние файлы не создаются.
+## License
+
+MIT License — see [LICENSE](LICENSE) file.
+
+## Changelog
+
+### 2.0.0 (2026-01-15)
+
+- Unified version combining Set-DpiScaling.ps1 and PR #1 features
+- Added `-ScalingPercent` parameter (100/125/150/175)
+- Added `-DryRun`, `-Force`, `-ListBackups` parameters
+- JSON backup format with schema version
+- Automatic elevation support
+- Full PSScriptAnalyzer compliance
+- Multilingual documentation
+
+### 1.0.0 (2025-06-04)
+
+- Initial release as Set-DpiScaling.ps1
+- Basic registry modification with underscore backups
