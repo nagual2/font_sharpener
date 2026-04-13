@@ -120,8 +120,8 @@ function Show-PlannedChanges {
 
 function Show-BackupList {
     $dir = Get-DefaultBackupDirectory
-    $backups = Get-ChildItem -Path $dir -Filter "FontSharpener-backup-*.json" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
-    if (-not $backups) {
+    $backups = @(Get-ChildItem -Path $dir -Filter "FontSharpener-backup-*.json" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+    if ($backups.Count -eq 0) {
         Write-Host "No backups found in: $dir" -ForegroundColor Yellow
         return
     }
