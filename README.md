@@ -6,6 +6,8 @@
 
 > A PowerShell tool for configuring Windows DPI scaling and font smoothing settings to improve text clarity.
 
+**Languages:** **English** (this page) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+
 ## Overview
 
 FontSharpener modifies Windows registry settings related to DPI scaling and font smoothing. It is designed for users who experience blurry or poorly scaled fonts on high-DPI displays or after certain Windows updates.
@@ -126,6 +128,7 @@ This documentation is available in multiple languages:
 
 - [English](README.md) (this file)
 - [Русский](README.ru.md)
+- [Deutsch](README.de.md)
 
 ## Troubleshooting
 
