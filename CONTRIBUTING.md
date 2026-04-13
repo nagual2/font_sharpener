@@ -1,5 +1,7 @@
 # Contributing to font_sharpener
 
+**Languages:** **English** (this page) | [Русский](CONTRIBUTING.ru.md) | [Deutsch](CONTRIBUTING.de.md)
+
 Thank you for your interest in contributing to font_sharpener! This document provides guidelines for contributing safely and securely.
 
 ## Getting Started

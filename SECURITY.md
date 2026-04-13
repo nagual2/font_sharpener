@@ -1,5 +1,7 @@
 # Security Policy for font_sharpener
 
+**Languages:** **English** (this page) | [Русский](SECURITY.ru.md) | [Deutsch](SECURITY.de.md)
+
 ## Reporting Security Vulnerabilities
 
 If you discover a security vulnerability in this repository, please **do not** open a public issue. Instead:
